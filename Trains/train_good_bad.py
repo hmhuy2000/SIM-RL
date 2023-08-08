@@ -148,7 +148,8 @@ def main():
             epoch_disc=epoch_disc,batch_size=batch_size,lr_disc=lr_disc,clip_eps=clip_eps, lambd=lambd, coef_ent=coef_ent,
             max_grad_norm=max_grad_norm,reward_factor=reward_factor,max_episode_length=max_episode_length,
             cost_limit=cost_limit,risk_level=risk_level,num_envs=num_envs,
-            dynamic_good=dynamic_good,min_good=min_good,max_bad=max_bad)
+            dynamic_good=dynamic_good,min_good=min_good,max_bad=max_bad,
+            conf_coef=conf_coef)
     
     eval_algo = deepcopy(algo)
     create_folder(weight_path)

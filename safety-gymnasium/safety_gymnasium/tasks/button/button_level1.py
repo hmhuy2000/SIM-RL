@@ -30,7 +30,6 @@ class ButtonLevel1(ButtonLevel0):
 
         self.placements_conf.extents = [-1.5, -1.5, 1.5, 1.5]
 
-        print(config['agent_name'],'Button')
         if (config['agent_name'] == 'Point'):
             self._add_geoms(Hazards(num=4, keepout=0.18))
             self._add_mocaps(Gremlins(num=4, travel=0.35, keepout=0.4))
