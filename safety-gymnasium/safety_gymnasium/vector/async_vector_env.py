@@ -63,6 +63,7 @@ class SafetyAsyncVectorEnv(AsyncVectorEnv):
         """
         target = _worker_shared_memory if shared_memory else _worker
         target = worker or target
+        context = 'spawn'
         super().__init__(
             env_fns,
             observation_space,

@@ -16,7 +16,7 @@
 
 from safety_gymnasium.assets.geoms import Hazards
 from safety_gymnasium.assets.mocaps import Gremlins
-from safety_gymnasium.tasks.safe_navigation.button.button_level0 import ButtonLevel0
+from safety_gymnasium.tasks.button.button_level0 import ButtonLevel0
 
 
 class ButtonLevel1(ButtonLevel0):
@@ -30,6 +30,13 @@ class ButtonLevel1(ButtonLevel0):
 
         self.placements_conf.extents = [-1.5, -1.5, 1.5, 1.5]
 
-        self._add_geoms(Hazards(num=4, keepout=0.18))
-        self._add_mocaps(Gremlins(num=4, travel=0.35, keepout=0.4))
+        print(config['agent_name'],'Button')
+        if (config['agent_name'] == 'Point'):
+            self._add_geoms(Hazards(num=4, keepout=0.18))
+            self._add_mocaps(Gremlins(num=4, travel=0.35, keepout=0.4))
+        elif(config['agent_name'] == 'Car'):
+            self._add_geoms(Hazards(num=5, keepout=0.18))
+        else:
+            raise
+        
         self.buttons.is_constrained = True  # pylint: disable=no-member
