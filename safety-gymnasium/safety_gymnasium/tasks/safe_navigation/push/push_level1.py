@@ -15,7 +15,7 @@
 """Push level 1."""
 
 from safety_gymnasium.assets.geoms import Hazards, Pillars
-from safety_gymnasium.tasks.push.push_level0 import PushLevel0
+from safety_gymnasium.tasks.safe_navigation.push.push_level0 import PushLevel0
 
 
 class PushLevel1(PushLevel0):

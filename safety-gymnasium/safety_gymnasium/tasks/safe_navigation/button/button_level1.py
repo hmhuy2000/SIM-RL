@@ -16,8 +16,7 @@
 
 from safety_gymnasium.assets.geoms import Hazards
 from safety_gymnasium.assets.mocaps import Gremlins
-from safety_gymnasium.tasks.button.button_level0 import ButtonLevel0
-
+from safety_gymnasium.tasks.safe_navigation.button.button_level0 import ButtonLevel0
 
 class ButtonLevel1(ButtonLevel0):
     """An agent must press a goal button while avoiding hazards and gremlins.
