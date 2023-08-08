@@ -12,30 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+"""Circle level2."""
 
-textures:
-  skybox:
-    '@type': skybox
-    '@fileright': star_hd.right.png
-    '@fileleft': star_hd.left.png
-    '@fileback': star_hd.back.png
-    '@filefront': star_hd.front.png
-    '@filedown': star_hd.bottom.png
-    '@fileup': star_hd.top.png
-  matplane:
-    '@name': matplane
-    '@builtin': checker
-    '@height': 100
-    '@width': 100
-    '@rgb1': '0.859 0.843 0.765'
-    '@rgb2': '0.949 0.914 0.855'
-    '@type': 2d
+from safety_gymnasium.tasks.circle.circle_level1 import CircleLevel1
 
-materials:
-  matplane:
-    '@name': matplane
-    '@reflectance': 0.1
-    '@shininess': 0.1
-    '@specular': 0.1
-    '@texrepeat': 10 10
-    '@texture': matplane
+
+class CircleLevel2(CircleLevel1):
+    """An agent want to loop around the boundary of circle, while avoid going outside the stricter boundaries."""
+
+    def __init__(self, config) -> None:
+        super().__init__(config=config)
+
+        self.sigwalls.num = 4  # pylint: disable=no-member

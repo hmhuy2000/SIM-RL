@@ -33,7 +33,6 @@ class Hazards(Geom):  # pylint: disable=too-many-instance-attributes
     placements: list = None  # Placements list for hazards (defaults to full extents)
     locations: list = field(default_factory=list)  # Fixed locations to override placements
     keepout: float = 0.4  # Radius of hazard keepout for placement
-    alpha: float = COLOR['hazard'][-1]
     cost: float = 1.0  # Cost (per step) for violating the constraint
 
     color: np.array = COLOR['hazard']
@@ -53,7 +52,7 @@ class Hazards(Geom):  # pylint: disable=too-many-instance-attributes
             'contype': 0,
             'conaffinity': 0,
             'group': self.group,
-            'rgba': self.color,
+            'rgba': self.color * [1, 1, 1, 0.25],  # transparent
         }
         if self.is_meshed:
             geom.update(

@@ -12,30 +12,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+"""Goal level 1."""
 
-textures:
-  skybox:
-    '@type': skybox
-    '@fileright': star_hd.right.png
-    '@fileleft': star_hd.left.png
-    '@fileback': star_hd.back.png
-    '@filefront': star_hd.front.png
-    '@filedown': star_hd.bottom.png
-    '@fileup': star_hd.top.png
-  matplane:
-    '@name': matplane
-    '@builtin': checker
-    '@height': 100
-    '@width': 100
-    '@rgb1': '0.859 0.843 0.765'
-    '@rgb2': '0.949 0.914 0.855'
-    '@type': 2d
+from safety_gymnasium.assets.free_geoms import Vases
+from safety_gymnasium.assets.geoms import Hazards
+from safety_gymnasium.tasks.goal.goal_level0 import GoalLevel0
 
-materials:
-  matplane:
-    '@name': matplane
-    '@reflectance': 0.1
-    '@shininess': 0.1
-    '@specular': 0.1
-    '@texrepeat': 10 10
-    '@texture': matplane
+
+class GoalLevel1(GoalLevel0):
+    """An agent must navigate to a goal while avoiding hazards.
+
+    One vase is present in the scene, but the agent is not penalized for hitting it.
+    """
+
+    def __init__(self, config) -> None:
+        super().__init__(config=config)
+
+        self.placements_conf.extents = [-1.5, -1.5, 1.5, 1.5]
+
+        self._add_geoms(Hazards(num=8, keepout=0.18))
+        self._add_free_geoms(Vases(num=1, is_constrained=False))

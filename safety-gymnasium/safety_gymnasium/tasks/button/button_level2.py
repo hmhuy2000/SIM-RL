@@ -12,30 +12,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+"""Button task 2."""
 
-textures:
-  skybox:
-    '@type': skybox
-    '@fileright': star_hd.right.png
-    '@fileleft': star_hd.left.png
-    '@fileback': star_hd.back.png
-    '@filefront': star_hd.front.png
-    '@filedown': star_hd.bottom.png
-    '@fileup': star_hd.top.png
-  matplane:
-    '@name': matplane
-    '@builtin': checker
-    '@height': 100
-    '@width': 100
-    '@rgb1': '0.859 0.843 0.765'
-    '@rgb2': '0.949 0.914 0.855'
-    '@type': 2d
+from safety_gymnasium.tasks.button.button_level1 import ButtonLevel1
 
-materials:
-  matplane:
-    '@name': matplane
-    '@reflectance': 0.1
-    '@shininess': 0.1
-    '@specular': 0.1
-    '@texrepeat': 10 10
-    '@texture': matplane
+
+class ButtonLevel2(ButtonLevel1):
+    """An agent must press a goal button while avoiding more hazards and gremlins.
+
+    And while not pressing any of the wrong buttons.
+    """
+
+    def __init__(self, config) -> None:
+        super().__init__(config=config)
+        # pylint: disable=no-member
+        self.placements_conf.extents = [-1.8, -1.8, 1.8, 1.8]
+
+        self.hazards.num = 8
+        self.gremlins.num = 6
