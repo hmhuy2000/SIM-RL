@@ -7,5 +7,5 @@ CUDA_VISIBLE_DEVICES=0 python Trains/train_PPO.py \
 --lr_actor=0.0001 --lr_critic=0.0001 --lr_penalty=0.03 --clip_eps=0.2 \
 --num_eval_episodes=100 --eval_num_envs=50 --max_grad_norm=1.0 \
 --buffer_size=50000 --eval_interval=50000 --num_envs=10 --max_episode_length=1000 \
---risk_level=1.0 --batch_size=4096 --epoch_disc=1000 \
+--risk_level=1.0 --batch_size=4096 --epoch_clfs=1000 \
 --weight_path='./weights/SafetyPointGoal1-v0/PPO-unconstraint' 

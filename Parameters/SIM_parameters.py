@@ -14,17 +14,17 @@ training_group.add_argument('--buffer_size',type=int,default=20000)
 training_group.add_argument('--mix',type=int,default=1)
 training_group.add_argument('--hidden_units_actor',type=int,default=256)
 training_group.add_argument('--hidden_units_critic',type=int,default=256)
-training_group.add_argument('--hidden_units_disc',type=int,default=256)
+training_group.add_argument('--hidden_units_clfs',type=int,default=256)
 training_group.add_argument('--number_layers',type=int,default=2)
 
 training_group.add_argument('--lr_actor', type=float, default=0.0001)
 training_group.add_argument('--lr_critic', type=float, default=0.0001)
 training_group.add_argument('--lr_cost_critic', type=float, default=0.0001)
 training_group.add_argument('--lr_penalty', type=float, default=0.0001)
-training_group.add_argument('--lr_disc', type=float, default=0.0001)
+training_group.add_argument('--lr_clfs', type=float, default=0.0001)
 
 training_group.add_argument('--epoch_ppo',type=int,default=80)
-training_group.add_argument('--epoch_disc',type=int,default=80)
+training_group.add_argument('--epoch_clfs',type=int,default=80)
 training_group.add_argument('--clip_eps', type=float, default=0.2)
 training_group.add_argument('--lambd', type=float, default=0.97)
 training_group.add_argument('--coef_ent', type=float, default=0.01)
@@ -51,7 +51,16 @@ training_group.add_argument('--min_good',type=float,default=None)
 training_group.add_argument('--max_bad',type=float,default=None)
 training_group.add_argument('--expert_path', type=str, default=None)
 training_group.add_argument('--dynamic_good', type=str, default='False')
+training_group.add_argument('--tanh_conf', type=str, default='False')
 
+
+def get_bool(value):
+    if (value == 'True'):
+        return True
+    elif (value == 'False'):
+        return False
+    else:
+        raise 'value must in {True,False}'
 
 #-------------------------------------------------------------------------------------------------#
 
@@ -66,11 +75,11 @@ mix                                     = args.mix
 
 hidden_units_actor                      = []
 hidden_units_critic                     = []
-hidden_units_disc                       = []
+hidden_units_clfs                       = []
 for _ in range(args.number_layers):
     hidden_units_actor.append(args.hidden_units_actor)
     hidden_units_critic.append(args.hidden_units_critic)
-    hidden_units_disc.append(args.hidden_units_disc)
+    hidden_units_clfs.append(args.hidden_units_clfs)
 
 max_eval_return                         = -np.inf
 
@@ -80,9 +89,9 @@ lr_actor                                = args.lr_actor
 lr_critic                               = args.lr_critic
 lr_cost_critic                          = args.lr_cost_critic
 lr_penalty                              = args.lr_penalty
-lr_disc                                 = args.lr_disc
+lr_clfs                                 = args.lr_clfs
 epoch_ppo                               = args.epoch_ppo
-epoch_disc                               = args.epoch_disc
+epoch_clfs                               = args.epoch_clfs
 clip_eps                                = args.clip_eps
 lambd                                   = args.lambd
 coef_ent                                = args.coef_ent
@@ -107,6 +116,8 @@ conf_coef                               = args.conf_coef
 expert_path                             = args.expert_path
 min_good                                = args.min_good
 max_bad                                 = args.max_bad
+dynamic_good                            = get_bool(args.dynamic_good)
+tanh_conf                               = get_bool(args.tanh_conf)
 
 if not os.path.exists(weight_path):
     os.makedirs(weight_path)
@@ -114,13 +125,6 @@ if not os.path.exists(weight_path):
 log_path = f'{weight_path}/log_data'
 if not os.path.exists(log_path):
     os.makedirs(log_path)
-
-if (args.dynamic_good == 'True'):
-    dynamic_good = True
-elif (args.dynamic_good == 'False'):
-    dynamic_good = False
-else:
-    raise 'dynamic_good in {True,False}'
 
 eval_return = open(f'{log_path}/return_{seed}.txt','w')
 eval_cost = open(f'{log_path}/cost_{seed}.txt','w')

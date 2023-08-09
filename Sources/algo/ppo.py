@@ -42,8 +42,8 @@ def calculate_gae_cost(values, rewards, dones, next_values, gamma, lambd):
 
 class PPO_continuous(Algorithm):
     def __init__(self,env_name, state_shape, action_shape, device, seed, gamma,cost_gamma,
-        buffer_size, mix, hidden_units_actor, hidden_units_critic,units_disc,batch_size,
-        lr_actor, lr_critic,lr_cost_critic,lr_penalty,lr_disc, epoch_ppo,epoch_disc, clip_eps, lambd, coef_ent, 
+        buffer_size, mix, hidden_units_actor, hidden_units_critic,units_clfs,batch_size,
+        lr_actor, lr_critic,lr_cost_critic,lr_penalty,lr_clfs, epoch_ppo,epoch_clfs, clip_eps, lambd, coef_ent, 
         max_grad_norm,reward_factor,max_episode_length,cost_limit,risk_level,
         num_envs,primarive=True):
         super().__init__(device, seed, gamma)
@@ -89,7 +89,7 @@ class PPO_continuous(Algorithm):
         self.learning_steps_ppo = 0
         self.rollout_length = buffer_size
         self.epoch_ppo = epoch_ppo
-        self.epoch_disc = epoch_disc
+        self.epoch_clfs = epoch_clfs
         self.clip_eps = clip_eps
         self.lambd = lambd
         self.coef_ent = coef_ent
@@ -121,7 +121,7 @@ class PPO_continuous(Algorithm):
         self.tmp_return_reward = [0 for _ in range(self.num_envs)]
         self.new_good = 0
         self.new_bad = 0
-        self.learning_steps_disc = 0
+        self.learning_steps_clfs = 0
         self.env_step = 0
         self.start_train_good = False
 
@@ -271,13 +271,13 @@ class PPO_continuous(Algorithm):
 
 class PPO_lag(PPO_continuous):
     def __init__(self,env_name, state_shape, action_shape, device, seed, gamma,cost_gamma,
-        buffer_size, mix, hidden_units_actor, hidden_units_critic,units_disc,batch_size,
-        lr_actor, lr_critic,lr_cost_critic,lr_penalty,lr_disc, epoch_ppo,epoch_disc, clip_eps, lambd, coef_ent, 
+        buffer_size, mix, hidden_units_actor, hidden_units_critic,units_clfs,batch_size,
+        lr_actor, lr_critic,lr_cost_critic,lr_penalty,lr_clfs, epoch_ppo,epoch_clfs, clip_eps, lambd, coef_ent, 
         max_grad_norm,reward_factor,max_episode_length,cost_limit,risk_level,
         num_envs,primarive=True):
         super().__init__(env_name, state_shape, action_shape, device, seed, gamma,cost_gamma,
-        buffer_size, mix, hidden_units_actor, hidden_units_critic,units_disc,batch_size,
-        lr_actor, lr_critic,lr_cost_critic,lr_penalty,lr_disc, epoch_ppo,epoch_disc, clip_eps, lambd, coef_ent, 
+        buffer_size, mix, hidden_units_actor, hidden_units_critic,units_clfs,batch_size,
+        lr_actor, lr_critic,lr_cost_critic,lr_penalty,lr_clfs, epoch_ppo,epoch_clfs, clip_eps, lambd, coef_ent, 
         max_grad_norm,reward_factor,max_episode_length,cost_limit,risk_level,
         num_envs,primarive=True)
 

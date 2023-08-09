@@ -102,9 +102,9 @@ def main():
             state_shape=state_shape, action_shape=action_shape,
             device=device, seed=seed, gamma=gamma,cost_gamma=cost_gamma,buffer_size=buffer_size,
             mix=mix, hidden_units_actor=hidden_units_actor,
-            hidden_units_critic=hidden_units_critic,units_disc=hidden_units_disc,
+            hidden_units_critic=hidden_units_critic,units_clfs=hidden_units_clfs,
             lr_actor=lr_actor,lr_critic=lr_critic,lr_cost_critic=lr_cost_critic,lr_penalty=lr_penalty, epoch_ppo=epoch_ppo,
-            epoch_disc=epoch_disc,batch_size=batch_size,lr_disc=lr_disc,clip_eps=clip_eps, lambd=lambd, coef_ent=coef_ent,
+            epoch_clfs=epoch_clfs,batch_size=batch_size,lr_clfs=lr_clfs,clip_eps=clip_eps, lambd=lambd, coef_ent=coef_ent,
             max_grad_norm=max_grad_norm,reward_factor=reward_factor,max_episode_length=max_episode_length,
             cost_limit=cost_limit,risk_level=risk_level,num_envs=num_envs)
     
