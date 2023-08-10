@@ -52,6 +52,7 @@ training_group.add_argument('--max_bad',type=float,default=None)
 training_group.add_argument('--expert_path', type=str, default=None)
 training_group.add_argument('--dynamic_good', type=str, default='False')
 training_group.add_argument('--tanh_conf', type=str, default='False')
+training_group.add_argument('--start_bad',type=int,default=None)
 
 
 def get_bool(value):
@@ -118,6 +119,7 @@ min_good                                = args.min_good
 max_bad                                 = args.max_bad
 dynamic_good                            = get_bool(args.dynamic_good)
 tanh_conf                               = get_bool(args.tanh_conf)
+start_bad                               = args.start_bad
 
 if not os.path.exists(weight_path):
     os.makedirs(weight_path)

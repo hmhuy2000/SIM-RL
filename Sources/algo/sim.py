@@ -14,7 +14,7 @@ class SIM(PPO_lag):
         lr_actor, lr_critic,lr_cost_critic,lr_penalty,lr_clfs, epoch_ppo,epoch_clfs, clip_eps, lambd, coef_ent, 
         max_grad_norm,reward_factor,max_episode_length,cost_limit,risk_level,
         num_envs,dynamic_good,min_good,max_bad,
-        conf_coef,tanh_conf,primarive=True):
+        conf_coef,tanh_conf,start_bad,primarive=True):
         super().__init__(env_name, state_shape, action_shape, device, seed, gamma,cost_gamma,
         buffer_size, mix, hidden_units_actor, hidden_units_critic,units_clfs,batch_size,
         lr_actor, lr_critic,lr_cost_critic,lr_penalty,lr_clfs, epoch_ppo,epoch_clfs, clip_eps, lambd, coef_ent, 
@@ -30,6 +30,7 @@ class SIM(PPO_lag):
         self.max_bad = max_bad
         self.conf_coef = conf_coef
         self.tanh_conf = tanh_conf
+        self.start_bad = start_bad
 
         if (primarive):
             self.clfs = Classifier_network(
@@ -178,7 +179,7 @@ class SIM(PPO_lag):
 
         states, actions, env_rewards,total_env_rewards, costs, dones, log_pis, next_states = self.buffer.get()
         env_rewards = env_rewards.clamp(min=-3.0,max=3.0)
-        if (self.exp_bad_buffer.roll_n>=300*self.max_episode_length):
+        if (self.exp_bad_buffer.roll_n>=self.start_bad*self.max_episode_length):
             if (not self.tanh_conf):
                 confidents = self.clfs.get_confident_sigmoid(states,next_states, env_rewards, costs,log_pis).detach()
             else:

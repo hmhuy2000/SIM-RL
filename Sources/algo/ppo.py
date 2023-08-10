@@ -141,7 +141,8 @@ class PPO_continuous(Algorithm):
 
             if (done[idx]):
                 for (tmp_state,tmp_action,tmp_reward,tmp_c,tmp_mask,tmp_log_pi,tmp_next_state) in self.tmp_buffer[idx]:
-                    self.buffer.append(tmp_state, tmp_action, tmp_reward,self.tmp_return_reward[idx], tmp_c, tmp_mask, tmp_log_pi, tmp_next_state)
+                    self.buffer.append(tmp_state, tmp_action, tmp_reward,self.tmp_return_reward[idx],
+                     tmp_c, tmp_mask, tmp_log_pi, tmp_next_state)
                 self.tmp_buffer[idx] = []
                 self.return_cost.append(self.tmp_return_cost[idx])
                 self.return_reward.append(self.tmp_return_reward[idx])

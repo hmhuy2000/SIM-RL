@@ -74,10 +74,10 @@ def main():
         eval_thread = None
         state,_ = env.reset()
 
-        print('start training')
+        print('\nstart training')
         for step in range(1,num_training_step//num_envs+1):
-            if (step%100 == 0):
-                print(f'train: {step/(num_training_step//num_envs+1)*100:.2f}% {step}/{num_training_step//num_envs}', end='\r')
+            if (step %1000 == 0):
+                print(f'train: {step/(num_training_step//num_envs+1)*100:.2f}% {step}/{num_training_step//num_envs+1}', end='\r')
             state, t = algo.step(env, state, t)
             if algo.is_update(step*num_envs):
                     algo.update()

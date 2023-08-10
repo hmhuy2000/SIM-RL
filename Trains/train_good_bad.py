@@ -71,7 +71,7 @@ def main():
             f'SR: {success_rate:.2f}, '
             f'V: {value:.2f}, maxV: {max_eval_return:.2f}')
 
-    def train(env,test_env,algo,eval_algo):
+    def collect_expert_demonstration(env,algo):
         t = [0 for _ in range(num_envs)]
         eval_thread = None
         state,_ = env.reset()
@@ -87,6 +87,12 @@ def main():
             if (step %1000 == 0):
                 print(f'{step/num_expert_steps*100:.2f}%, return = {current_valid_return:.3f}, costs = {current_valid_cost:.3f},'+
                 f' good_rate = {current_good_rate:.2f}, len = {int(num_total_traj*current_good_rate)}, {step}/{num_expert_steps}', end='\r')
+
+    def train(env,test_env,algo,eval_algo):
+        t = [0 for _ in range(num_envs)]
+        eval_thread = None
+        state,_ = env.reset()
+
         print('\nstart training')
         for step in range(1,num_training_step//num_envs+1):
             if (step %1000 == 0):
@@ -128,7 +134,7 @@ def main():
     expert_actor = StateIndependentPolicy(
             state_shape=state_shape,
             action_shape=action_shape,
-            hidden_units=hidden_units_actor,
+            hidden_units=(256,256,256),
             hidden_activation=nn.ReLU()
         ).to(device)
     assert (expert_path is not None) and (expert_path.split('/')[2] == env_name)
@@ -142,6 +148,8 @@ def main():
     else:
         print('training SIM with sigmoid confident')
 
+    print(f'threshold: minG: {min_good}, maxB: {max_bad}')
+
     setproctitle.setproctitle(f'{env_name}-SIM-{seed}')
     algo = SIM(env_name=env_name,expert_actor=expert_actor,exp_good_buffer=exp_good_buffer,exp_bad_buffer=exp_bad_buffer,
             state_shape=state_shape, action_shape=action_shape,
@@ -153,10 +161,11 @@ def main():
             max_grad_norm=max_grad_norm,reward_factor=reward_factor,max_episode_length=max_episode_length,
             cost_limit=cost_limit,risk_level=risk_level,num_envs=num_envs,
             dynamic_good=dynamic_good,min_good=min_good,max_bad=max_bad,
-            conf_coef=conf_coef,tanh_conf=tanh_conf)
+            conf_coef=conf_coef,tanh_conf=tanh_conf,start_bad=start_bad)
     
     eval_algo = deepcopy(algo)
     create_folder(weight_path)
+    collect_expert_demonstration(env=env,algo=algo)
     train(env=env,test_env=test_env,algo=algo,eval_algo=eval_algo)
 
     env.close()
