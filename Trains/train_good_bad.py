@@ -26,8 +26,6 @@ def main():
     #------------------------------------------#
     def evaluate(algo, env,max_episode_length):
         global max_eval_return
-        global eval_return
-        global eval_cost
         mean_return = 0.0
         mean_cost = 0.0
         failed_case = []
@@ -55,10 +53,6 @@ def main():
         mean_return = mean_return/num_eval_episodes
         mean_cost = mean_cost/num_eval_episodes
         tmp_arr = np.asarray(failed_case)
-        eval_return.write(f'{mean_return}\n')
-        eval_return.flush()
-        eval_cost.write(f'{mean_cost}\n')
-        eval_cost.flush()
 
         success_rate = np.sum(tmp_arr<=cost_limit)/num_eval_episodes
         value = (mean_return * success_rate)/10
@@ -71,12 +65,11 @@ def main():
             f'SR: {success_rate:.2f}, '
             f'V: {value:.2f}, maxV: {max_eval_return:.2f}')
 
-    def collect_expert_demonstration(env,algo):
+    def collect_expert_demonstration(env,algo,total_interaction=int(1e6)):
         t = [0 for _ in range(num_envs)]
-        eval_thread = None
         state,_ = env.reset()
 
-        num_expert_steps = int((1e6))//num_envs
+        num_expert_steps = total_interaction//num_envs
         current_valid_return = 0
         current_valid_cost = 0
         current_good_rate = 0
@@ -93,12 +86,16 @@ def main():
         eval_thread = None
         state,_ = env.reset()
 
-        print('\nstart training')
+        print('start training')
         for step in range(1,num_training_step//num_envs+1):
-            if (step %1000 == 0):
-                print(f'train: {step/(num_training_step//num_envs+1)*100:.2f}% {step}/{num_training_step//num_envs+1}', end='\r')
+            if (step%100==0):
+                print(f'train: {step/(num_training_step//num_envs)*100:.2f}% {step}/{num_training_step//num_envs}', end='\r')
             state, t = algo.step(env, state, t)
             if algo.is_update(step*num_envs):
+                    eval_return.write(f'{np.mean(algo.return_reward)}\n')
+                    eval_return.flush()
+                    eval_cost.write(f'{np.mean(algo.return_cost)}\n')
+                    eval_cost.flush()
                     algo.update()
                     
             if step % (eval_interval//num_envs) == 0:
@@ -112,6 +109,7 @@ def main():
                     args=(eval_algo,test_env,max_episode_length))
                     eval_thread.start()
         algo.save_models(f'{weight_path}/s{seed}-finish')
+
 
     state_shape=sample_env.observation_space.shape
     action_shape=sample_env.action_space.shape
@@ -134,11 +132,12 @@ def main():
     expert_actor = StateIndependentPolicy(
             state_shape=state_shape,
             action_shape=action_shape,
-            hidden_units=(256,256,256),
+            hidden_units=hidden_units_actor,
             hidden_activation=nn.ReLU()
         ).to(device)
     assert (expert_path is not None) and (expert_path.split('/')[2] == env_name)
     expert_actor.load_state_dict(torch.load(expert_path))
+
     if (dynamic_good):
         print('training SIM with dynamic good threshold')
     else:
@@ -147,7 +146,6 @@ def main():
         print('training SIM with tanh confident')
     else:
         print('training SIM with sigmoid confident')
-
     print(f'threshold: minG: {min_good}, maxB: {max_bad}')
 
     setproctitle.setproctitle(f'{env_name}-SIM-{seed}')

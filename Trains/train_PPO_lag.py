@@ -24,8 +24,6 @@ def main():
     #------------------------------------------#
     def evaluate(algo, env,max_episode_length):
         global max_eval_return
-        global eval_return
-        global eval_cost
         mean_return = 0.0
         mean_cost = 0.0
         failed_case = []
@@ -53,10 +51,6 @@ def main():
         mean_return = mean_return/num_eval_episodes
         mean_cost = mean_cost/num_eval_episodes
         tmp_arr = np.asarray(failed_case)
-        eval_return.write(f'{mean_return}\n')
-        eval_return.flush()
-        eval_cost.write(f'{mean_cost}\n')
-        eval_cost.flush()
 
         success_rate = np.sum(tmp_arr<=cost_limit)/num_eval_episodes
         value = (mean_return * success_rate)/10
@@ -74,12 +68,16 @@ def main():
         eval_thread = None
         state,_ = env.reset()
 
-        print('\nstart training')
+        print('start training')
         for step in range(1,num_training_step//num_envs+1):
-            if (step %1000 == 0):
-                print(f'train: {step/(num_training_step//num_envs+1)*100:.2f}% {step}/{num_training_step//num_envs+1}', end='\r')
+            if (step%100 == 0):
+                print(f'train: {step/(num_training_step//num_envs)*100:.2f}% {step}/{num_training_step//num_envs}', end='\r')
             state, t = algo.step(env, state, t)
             if algo.is_update(step*num_envs):
+                    eval_return.write(f'{np.mean(algo.return_reward)}\n')
+                    eval_return.flush()
+                    eval_cost.write(f'{np.mean(algo.return_cost)}\n')
+                    eval_cost.flush()
                     algo.update()
                     
             if step % (eval_interval//num_envs) == 0:

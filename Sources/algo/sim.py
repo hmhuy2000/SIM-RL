@@ -31,6 +31,8 @@ class SIM(PPO_lag):
         self.conf_coef = conf_coef
         self.tanh_conf = tanh_conf
         self.start_bad = start_bad
+        self.new_good = 0
+        self.new_bad = 0
 
         if (primarive):
             self.clfs = Classifier_network(
@@ -49,22 +51,20 @@ class SIM(PPO_lag):
         return self.min_good
 
     def get_return_threshold(self):
-        arr_r = self.return_reward[-100:]
-        if (len(arr_r)==0):
+        if (len(self.return_reward)==0):
             return self.min_good
         if (self.dynamic_good):
             return min(
-                np.mean(arr_r)+2*max(1.0,np.std(arr_r)),
+                np.mean(self.return_reward)+2*max(1.0,np.std(self.return_reward)),
                        self.min_good)
         else:
             return self.min_good
 
     def get_bad_threshhold(self):
-        arr_r = self.return_reward[-100:]
-        if (len(arr_r)==0):
+        if (len(self.return_reward)==0):
             return 0.0
         return min(
-                np.mean(arr_r)-max(1.0,np.std(arr_r)),
+                np.mean(self.return_reward)-max(1.0,np.std(self.return_reward)),
                    self.max_bad)
     
     def expert_exploit(self,state):
@@ -74,7 +74,6 @@ class SIM(PPO_lag):
         return action.cpu().numpy()
     
     def expert_step(self, env, state, ep_len):
-        self.env_step += self.num_envs
         action = self.expert_exploit(state)
         next_state, reward, c, done, _, _  = env.step(action)
         for idx in range(self.num_envs):
@@ -117,7 +116,6 @@ class SIM(PPO_lag):
         np.mean(self.expert_return_cost),np.mean(self.expert_sucess_rate),len(self.expert_sucess_rate)
     
     def step(self, env, state, ep_len):
-        self.env_step += self.num_envs
         action, log_pi = self.explore(state)
         next_state, reward, c, done, _, _  = env.step(action)
         for idx in range(self.num_envs):
@@ -152,11 +150,7 @@ class SIM(PPO_lag):
                         
                 self.tmp_buffer[idx] = []
                 self.return_cost.append(self.tmp_return_cost[idx])
-                self.return_reward.append(int(self.tmp_return_reward[idx]*100)/100)
-                if (self.return_cost[-1]<=self.cost_limit):
-                    self.success_rate.append(1.0)
-                else:
-                    self.success_rate.append(0.0)
+                self.return_reward.append(self.tmp_return_reward[idx])
                 self.tmp_return_cost[idx] = 0
                 self.tmp_return_reward[idx] = 0
 
@@ -167,9 +161,7 @@ class SIM(PPO_lag):
         return next_state, ep_len
     
     def update(self):
-        self.learning_steps += 1
         for _ in range(self.epoch_clfs):
-            self.learning_steps_clfs += 1
             bad_states, bad_actions,bad_next_states,bad_rewards,bad_costs,_ = self.exp_bad_buffer.sample_roll(self.batch_size)
             exp_states, exp_actions,exp_next_states,exp_rewards,exp_costs,_ = self.exp_good_buffer.sample_roll(self.batch_size)
             bad_log_pi = self.actor.evaluate_log_pi(bad_states,bad_actions)
@@ -189,13 +181,15 @@ class SIM(PPO_lag):
             confidents = torch.tensor(0.0)
         conf_reward =self.conf_coef*confidents
         rewards = env_rewards + conf_reward
-        print(f'[Train] R: {np.mean(self.return_reward[-100:]):.2f}, C: {np.mean(self.return_cost[-100:]):.2f}, '+
+        print(f'[Train] R: {np.mean(self.return_reward):.2f}, C: {np.mean(self.return_cost):.2f}, '+
               f'newG: {self.new_good}, newB: {self.new_bad}, mConf: {confidents.mean().item():.5f}, '+
               f'RConf: {conf_reward.mean().item():.5f}')
-        self.new_good = 0
-        self.new_bad = 0
         self.update_ppo(
             states, actions, rewards, costs, dones, log_pis, next_states)
+        self.return_cost = []
+        self.return_reward = []
+        self.new_good = 0
+        self.new_bad = 0
         
     def update_clfs(self, 
                     bad_states,bad_next_states,bad_rewards,bad_costs,bad_log_pi,

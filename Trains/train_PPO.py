@@ -24,8 +24,6 @@ def main():
     #------------------------------------------#
     def evaluate(algo, env,max_episode_length):
         global max_eval_return
-        global eval_return
-        global eval_cost
         mean_return = 0.0
         mean_cost = 0.0
         failed_case = []
@@ -36,7 +34,8 @@ def main():
             episode_return = 0.0
             episode_cost = 0.0
             for iter in range(max_episode_length):
-                print(f'valid {step+1}/{num_eval_episodes//eval_num_envs}: {iter/max_episode_length*100:.2f}% {iter}/{max_episode_length}', end='\r')
+                if (step%100 == 0):
+                    print(f'valid {step+1}/{num_eval_episodes//eval_num_envs}: {iter/max_episode_length*100:.2f}% {iter}/{max_episode_length}', end='\r')
                 action = algo.exploit(state)
                 state, reward, cost, done, _, _ = env.step(action)
                 episode_return += np.sum(reward)
@@ -52,10 +51,6 @@ def main():
         mean_return = mean_return/num_eval_episodes
         mean_cost = mean_cost/num_eval_episodes
         tmp_arr = np.asarray(failed_case)
-        eval_return.write(f'{mean_return}\n')
-        eval_return.flush()
-        eval_cost.write(f'{mean_cost}\n')
-        eval_cost.flush()
 
         success_rate = np.sum(tmp_arr<=cost_limit)/num_eval_episodes
         value = (mean_return * success_rate)/10
@@ -75,9 +70,14 @@ def main():
 
         print('start training')
         for step in range(1,num_training_step//num_envs+1):
-            print(f'train: {step/(num_training_step//num_envs+1)*100:.2f}% {step}/{num_training_step//num_envs+1}', end='\r')
+            if (step%100 == 0):
+                print(f'train: {step/(num_training_step//num_envs)*100:.2f}% {step}/{num_training_step//num_envs}', end='\r')
             state, t = algo.step(env, state, t)
             if algo.is_update(step*num_envs):
+                    eval_return.write(f'{np.mean(algo.return_reward)}\n')
+                    eval_return.flush()
+                    eval_cost.write(f'{np.mean(algo.return_cost)}\n')
+                    eval_cost.flush()
                     algo.update()
                     
             if step % (eval_interval//num_envs) == 0:

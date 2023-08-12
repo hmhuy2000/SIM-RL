@@ -86,7 +86,6 @@ class PPO_continuous(Algorithm):
             self.optim_cost_critic = Adam(self.cost_critic.parameters(), lr=lr_cost_critic)
             self.optim_penalty = Adam([self.penalty], lr=lr_penalty)
 
-        self.learning_steps_ppo = 0
         self.rollout_length = buffer_size
         self.epoch_ppo = epoch_ppo
         self.epoch_clfs = epoch_clfs
@@ -94,39 +93,21 @@ class PPO_continuous(Algorithm):
         self.lambd = lambd
         self.coef_ent = coef_ent
         self.max_grad_norm = max_grad_norm
-        self.max_entropy = -1e9
         self.reward_factor = reward_factor
         self.env_length = []
         self.max_episode_length = max_episode_length
-        self.rewards = []
-        self.costs = []
         self.return_cost = []
         self.return_reward = []
-        self.success_rate = []
         self.cost_limit = cost_limit
         self.num_envs = num_envs
         self.cost_gamma = cost_gamma
-        self.target_cost = (
-            self.cost_limit * (1 - self.cost_gamma**self.max_episode_length) / (1 - self.cost_gamma) / self.max_episode_length
-        )
         self.target_kl = 0.02
-        self.risk_level = risk_level
-        normal = tdist.normal.Normal(torch.tensor([0.0]), torch.tensor([1.0]))
-        self.pdf_cdf = (
-            normal.log_prob(normal.icdf(torch.tensor(self.risk_level))).exp() / self.risk_level
-        ) 
-        self.pdf_cdf = self.pdf_cdf.cuda()
         self.tmp_buffer = [[] for _ in range(self.num_envs)]
         self.tmp_return_cost = [0 for _ in range(self.num_envs)]
         self.tmp_return_reward = [0 for _ in range(self.num_envs)]
-        self.new_good = 0
-        self.new_bad = 0
-        self.learning_steps_clfs = 0
-        self.env_step = 0
         self.start_train_good = False
 
     def step(self, env, state, ep_len):
-        self.env_step += self.num_envs
         action, log_pi = self.explore(state)
         next_state, reward, c, done, _, _  = env.step(action)
         for idx in range(self.num_envs):
@@ -164,8 +145,10 @@ class PPO_continuous(Algorithm):
             self.buffer.get()
         env_rewards = env_rewards.clamp(min=-3.0,max=3.0)
         rewards = env_rewards
-        print(f'[Train] R: {np.mean(self.return_reward[-100:]):.2f}, C: {np.mean(self.return_cost[-100:]):.2f}')
+        print(f'[Train] R: {np.mean(self.return_reward):.2f}, C: {np.mean(self.return_cost):.2f}')
         self.update_ppo(states, actions, rewards, costs, dones, log_pis, next_states)
+        self.return_cost = []
+        self.return_reward = []
 
     def update_ppo(self, states, actions, rewards,costs, dones, log_pis, next_states):
         with torch.no_grad():
@@ -180,54 +163,31 @@ class PPO_continuous(Algorithm):
             cost_values, costs, dones, next_cost_values, self.cost_gamma, self.lambd)
         
         for _ in range(self.epoch_ppo):
-            self.learning_steps_ppo += 1
             self.update_critic(states, targets, cost_targets)
         
         app_kl = 0.0
         for _ in range(self.epoch_ppo):
-            self.learning_steps_ppo += 1
-            if (app_kl<self.target_kl):
-                app_kl = self.update_actor(states, actions,
-                                            log_pis, gaes,cost_gaes)
-
-        # with torch.no_grad():
-        #     cost_values = self.cost_critic(states)         
-        #     cost_deviation = self.target_cost - cost_values
-        # loss_penalty = (F.softplus(self.penalty)*cost_deviation).mean()
-        # self.optim_penalty.zero_grad()
-        # loss_penalty.backward()
-        # self.optim_penalty.step()
-
-        self.rewards = []
-        self.costs = []
+            if (app_kl>self.target_kl):
+                break
+            app_kl = self.update_actor(states, actions,
+                            log_pis, gaes,cost_gaes)
 
     def update_critic(self, states, targets,cost_targets):
         value_means = self.critic(states)
         loss_critic = (value_means - targets).pow_(2).mean()
-        cost_means = self.cost_critic(states)
-        loss_cost_critic_mean = (cost_means - cost_targets).pow_(2).mean()
 
-        loss_cost_critic = loss_cost_critic_mean 
         self.optim_critic.zero_grad()
         loss_critic.backward(retain_graph=False)
         nn.utils.clip_grad_norm_(self.critic.parameters(), self.max_grad_norm)
         self.optim_critic.step()
 
-        self.optim_cost_critic.zero_grad()
-        loss_cost_critic.backward(retain_graph=False)
-        nn.utils.clip_grad_norm_(self.cost_critic.parameters(), self.max_grad_norm)
-        self.optim_cost_critic.step()
-
     def update_actor(self, states, actions, log_pis_old, gaes, cost_gaes):
         log_pis = self.actor.evaluate_log_pi(states, actions)
         entropy = -log_pis.mean()
-        self.max_entropy = max(self.max_entropy,entropy.item())
         approx_kl = (log_pis_old - log_pis).mean().item()
         ratios = (log_pis - log_pis_old).exp_()
 
-        penalty = torch.tensor(0.0)
-        total_gae = gaes - penalty * cost_gaes
-        total_gae = total_gae/(penalty+1)
+        total_gae = gaes
 
         loss_actor1 = -ratios * total_gae
         loss_actor2 = -torch.clamp(
@@ -281,6 +241,9 @@ class PPO_lag(PPO_continuous):
         lr_actor, lr_critic,lr_cost_critic,lr_penalty,lr_clfs, epoch_ppo,epoch_clfs, clip_eps, lambd, coef_ent, 
         max_grad_norm,reward_factor,max_episode_length,cost_limit,risk_level,
         num_envs,primarive=True)
+        self.target_cost = (
+            self.cost_limit * (1 - self.cost_gamma**self.max_episode_length) / (1 - self.cost_gamma) / self.max_episode_length
+        )
 
     def update_ppo(self, states, actions, rewards,costs, dones, log_pis, next_states):
         with torch.no_grad():
@@ -295,15 +258,14 @@ class PPO_lag(PPO_continuous):
             cost_values, costs, dones, next_cost_values, self.cost_gamma, self.lambd)
         
         for _ in range(self.epoch_ppo):
-            self.learning_steps_ppo += 1
             self.update_critic(states, targets, cost_targets)
         
         app_kl = 0.0
         for _ in range(self.epoch_ppo):
-            self.learning_steps_ppo += 1
-            if (app_kl<self.target_kl):
-                app_kl = self.update_actor(states, actions,
-                                            log_pis, gaes,cost_gaes)
+            if (app_kl>self.target_kl):
+                break
+            app_kl = self.update_actor(states, actions,
+                        log_pis, gaes,cost_gaes)
 
         with torch.no_grad():
             cost_values = self.cost_critic(states)         
@@ -313,13 +275,9 @@ class PPO_lag(PPO_continuous):
         loss_penalty.backward()
         self.optim_penalty.step()
 
-        self.rewards = []
-        self.costs = []
-
     def update_actor(self, states, actions, log_pis_old, gaes, cost_gaes):
         log_pis = self.actor.evaluate_log_pi(states, actions)
         entropy = -log_pis.mean()
-        self.max_entropy = max(self.max_entropy,entropy.item())
         approx_kl = (log_pis_old - log_pis).mean().item()
         ratios = (log_pis - log_pis_old).exp_()
 
@@ -340,3 +298,19 @@ class PPO_lag(PPO_continuous):
         nn.utils.clip_grad_norm_(self.actor.parameters(), self.max_grad_norm)
         self.optim_actor.step()
         return approx_kl
+    
+    def update_critic(self, states, targets,cost_targets):
+        value_means = self.critic(states)
+        loss_critic = (value_means - targets).pow_(2).mean()
+        cost_means = self.cost_critic(states)
+        loss_cost_critic = (cost_means - cost_targets).pow_(2).mean()
+
+        self.optim_critic.zero_grad()
+        loss_critic.backward(retain_graph=False)
+        nn.utils.clip_grad_norm_(self.critic.parameters(), self.max_grad_norm)
+        self.optim_critic.step()
+
+        self.optim_cost_critic.zero_grad()
+        loss_cost_critic.backward(retain_graph=False)
+        nn.utils.clip_grad_norm_(self.cost_critic.parameters(), self.max_grad_norm)
+        self.optim_cost_critic.step()
