@@ -1,14 +1,14 @@
-CUDA_VISIBLE_DEVICES=3 python Trains/train_good_bad.py \
+CUDA_VISIBLE_DEVICES=2 python Trains/train_good_bad.py \
 --env_name='SafetyPointPush1-v0' \
---seed=0 --num_training_step=30000000 \
+--seed=3 --num_training_step=30000000 \
 --gamma=0.99 --cost_gamma=0.99 \
 --number_layers=3 --hidden_units_actor=256 --hidden_units_critic=256 \
 --coef_ent=0.0001 --reward_factor=1.0 --cost_limit=15.0 \
 --lr_actor=0.0001 --lr_critic=0.0001 --lr_penalty=0.01 --clip_eps=0.2 \
---num_eval_episodes=100 --eval_num_envs=25 --max_grad_norm=1.0 \
+--num_eval_episodes=100 --eval_num_envs=25 --max_grad_norm=1.0 --epoch_ppo=160 \
 --buffer_size=50000 --eval_interval=300000 --num_envs=25 --max_episode_length=1000 \
---risk_level=1.0 --batch_size=4096 --epoch_clfs=1000 \
+--risk_level=1.0 --batch_size=4096 --epoch_clfs=100 \
 --weight_path='./weights/SafetyPointPush1-v0/SIM' \
 --dynamic_good=False --tanh_conf=False --min_good=11.0 --max_bad=6.0 \
---conf_coef=0.01 --start_bad=150 \
+--conf_coef=0.03 --start_bad=100 \
 --expert_path='./weights/SafetyPointPush1-v0/PPO-lag(25)/(0.685)0.64-10.71/actor.pth'

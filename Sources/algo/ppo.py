@@ -101,7 +101,7 @@ class PPO_continuous(Algorithm):
         self.cost_limit = cost_limit
         self.num_envs = num_envs
         self.cost_gamma = cost_gamma
-        self.target_kl = 0.02
+        self.target_kl = 0.05
         self.tmp_buffer = [[] for _ in range(self.num_envs)]
         self.tmp_return_cost = [0 for _ in range(self.num_envs)]
         self.tmp_return_reward = [0 for _ in range(self.num_envs)]
