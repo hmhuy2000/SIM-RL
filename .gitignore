@@ -13,10 +13,8 @@ outputs
 data/
 outputs/
 video/
-wandb/
 */.gitignore
 */.git
-*wandb/
 *.pkl
 # Distribution / packaging
 .Python
@@ -39,7 +37,6 @@ share/python-wheels/
 *.egg
 MANIFEST
 wandb/
-weights/
 buffers/
 # PyInstaller
 #  Usually these files are written by a python script from a template

@@ -135,7 +135,8 @@ def main():
             hidden_units=hidden_units_actor,
             hidden_activation=nn.ReLU()
         ).to(device)
-    assert (expert_path is not None) and (expert_path.split('/')[2] == env_name)
+    assert expert_path is not None
+    
     expert_actor.load_state_dict(torch.load(expert_path))
 
     if (dynamic_good):

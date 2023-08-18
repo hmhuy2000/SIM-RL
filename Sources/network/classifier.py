@@ -7,11 +7,11 @@ from .utils import build_mlp
 
 class Classifier_network(nn.Module):
 
-    def __init__(self, state_shape, hidden_units=(100, 100),
+    def __init__(self, state_shape, action_shape, hidden_units=(100, 100),
      hidden_activation=nn.Tanh()):
         super().__init__()
         self.net = build_mlp(
-            input_dim=2*state_shape[0] + 3,
+            input_dim=state_shape[0] + action_shape[0],
             output_dim=1,
             hidden_units=hidden_units,
             hidden_activation=hidden_activation
@@ -23,14 +23,14 @@ class Classifier_network(nn.Module):
             init.xavier_uniform_(layer.weight)
             layer.bias.data.fill_(0.01)
     
-    def forward(self, states,next_states, rewards,costs,log_pi):
-        input = torch.cat([states, log_pi,next_states,rewards,costs], dim=-1)
+    def forward(self, states,actions):
+        input = torch.cat([states, actions], dim=-1)
         return self.net(input)
 
-    def get_confident_sigmoid(self, states,next_states, rewards,costs,log_pi):
-        input = torch.cat([states, log_pi,next_states,rewards,costs], dim=-1)
+    def get_confident_sigmoid(self, states,actions):
+        input = torch.cat([states, actions], dim=-1)
         return F.sigmoid(self.net(input))
 
-    def get_confident_tanh(self, states,next_states, rewards,costs,log_pi):
-        input = torch.cat([states, log_pi,next_states,rewards,costs], dim=-1)
+    def get_confident_tanh(self, states,actions):
+        input = torch.cat([states, actions], dim=-1)
         return F.tanh(self.net(input))

@@ -37,6 +37,7 @@ class SIM(PPO_lag):
         if (primarive):
             self.clfs = Classifier_network(
             state_shape=state_shape,
+            action_shape=action_shape,
             hidden_units=units_clfs,
             hidden_activation=nn.ReLU()
             ).to(device)
@@ -162,20 +163,18 @@ class SIM(PPO_lag):
     
     def update(self):
         for _ in range(self.epoch_clfs):
-            bad_states, bad_actions,bad_next_states,bad_rewards,bad_costs,_ = self.exp_bad_buffer.sample_roll(self.batch_size)
-            exp_states, exp_actions,exp_next_states,exp_rewards,exp_costs,_ = self.exp_good_buffer.sample_roll(self.batch_size)
-            bad_log_pi = self.actor.evaluate_log_pi(bad_states,bad_actions)
-            exp_log_pi = self.actor.evaluate_log_pi(exp_states,exp_actions)
-            self.update_clfs(   bad_states,bad_next_states,bad_rewards,bad_costs,bad_log_pi,
-                                exp_states,exp_next_states,exp_rewards,exp_costs,exp_log_pi)
+            bad_states, bad_actions,_,_,_,_ = self.exp_bad_buffer.sample_roll(self.batch_size)
+            good_states, good_actions,_,_,_,_ = self.exp_good_buffer.sample_roll(self.batch_size)
+            self.update_clfs(   bad_states,bad_actions,
+                                good_states,good_actions)
 
         states, actions, env_rewards,total_env_rewards, costs, dones, log_pis, next_states = self.buffer.get()
         env_rewards = env_rewards.clamp(min=-3.0,max=3.0)
         if (self.exp_bad_buffer.roll_n>=self.start_bad*self.max_episode_length):
             if (not self.tanh_conf):
-                confidents = self.clfs.get_confident_sigmoid(states,next_states, env_rewards, costs,log_pis).detach()
+                confidents = self.clfs.get_confident_sigmoid(states,actions).detach()
             else:
-                confidents = self.clfs.get_confident_tanh(states,next_states, env_rewards, costs,log_pis).detach()
+                confidents = self.clfs.get_confident_tanh(states,actions).detach()
 
         else:
             confidents = torch.tensor(0.0)
@@ -183,7 +182,7 @@ class SIM(PPO_lag):
         rewards = env_rewards + conf_reward
         print(f'[Train] R: {np.mean(self.return_reward):.2f}, C: {np.mean(self.return_cost):.2f}, '+
               f'newG: {self.new_good}, newB: {self.new_bad}, mConf: {confidents.mean().item():.5f}, '+
-              f'RConf: {conf_reward.mean().item():.5f}')
+              f'RConf: {conf_reward.mean().item():.5f}, Renv: {env_rewards.mean().item():.5f}')
         self.update_ppo(
             states, actions, rewards, costs, dones, log_pis, next_states)
         self.return_cost = []
@@ -192,12 +191,12 @@ class SIM(PPO_lag):
         self.new_bad = 0
         
     def update_clfs(self, 
-                    bad_states,bad_next_states,bad_rewards,bad_costs,bad_log_pi,
-                    exp_states,exp_next_states,exp_rewards,exp_costs,exp_log_pi):
-        bad_logits = self.clfs(bad_states,bad_next_states,bad_rewards,bad_costs,bad_log_pi)
+                    bad_states,bad_actions,
+                    good_states,good_actions):
+        bad_logits = self.clfs(bad_states,bad_actions)
         bad_loss = (1/10*bad_logits**2 + bad_logits).mean()
-        exp_logits = self.clfs(exp_states,exp_next_states,exp_rewards,exp_costs,exp_log_pi)
-        good_loss = (1/10*exp_logits**2 - exp_logits).mean()
+        good_logits = self.clfs(good_states,good_actions)
+        good_loss = (1/10*good_logits**2 - good_logits).mean()
 
         self.optim_clfs.zero_grad()
         (bad_loss+good_loss).backward()
