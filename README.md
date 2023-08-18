@@ -1,6 +1,25 @@
 <h1>mitate the Good and Avoid the Bad: An incremental approach to Safe
 Reinforcement Learning</h1>
 
+## Introduction
+A popular framework for enforcing safe actions in Rein-
+forcement Learning (RL) is Constrained RL, where trajectory
+based constraints on expected cost (or other cost measures)
+are employed to enforce safety and more importantly these
+constraints are enforced while maximizing expected reward.
+Most recent approaches for solving Constrained RL convert
+the trajectory based cost constraint into a surrogate problem
+that can be solved using minor modifications to RL methods.
+A key drawback with such approaches is an over or underestimation of the cost constraint at each state. Therefore, we
+provide an approach that does not modify the trajectory based
+cost constraint and instead imitates “good” trajectories and
+avoids “bad” trajectories generated from incrementally improving policies. We employ an oracle that utilizes a reward
+threshold (which is varied with learning) and the overall cost
+constraint to label trajectories as “good” or “bad”. A key advantage of our approach is that we are able to work from any
+starting policy or set of trajectories and improve on it. In an
+exhaustive set of experiments, we demonstrate that our approach is able to outperform top benchmark approaches for
+solving Constrained RL problems, with respect to expected
+cost, CVaR cost, or even unknown cost constraints.
 
 <!-- ## Announcements
 #### August 18, 2023
@@ -30,53 +49,74 @@ Reinforcement Learning</h1>
     ```
 ## Environment informations
 We conduct experiments in 6 different safety-gym environments which can be found in [Safety-gymnaisum](https://www.safety-gymnasium.com/en/latest/). 
-
 ## Train Self-IMitation based safe RL
-1. In our experiments, we use an relaxed-constraint expert to help our agent collect a number of expert trajectories at the begining for unsafe agent having high return. We want to achieve both high return and safe to strict constraint agent from our work. . Here, we provide some pretrained relaxed agent as well as their threshold  (min_good, max_bad) as bellow:
-    ```
-    SafetyPointGoal1-v0 (min_good = 25.0, max_bad = 20.0):              weights/Expert_cmax(25)/PointGoal_actor.pth
-    SafetyCarGoal1-v0 (min_good = 25.0, max_bad = 20.0):                weights/Expert_cmax(25)/CarGoal_actor.pth
-    SafetyPointButton1-v0 (min_good = 12.0, max_bad = 7.0):             weights/Expert_cmax(25)/PointButton_actor.pth
-    SafetyCarButton1-v0 (min_good = 15.0, max_bad = 10.0):              weights/Expert_cmax(25)/CarButton_actor.pth
-    SafetyPointPush1-v0 (min_good = 11.0, max_bad = 6.0):               weights/Expert_cmax(25)/PointPush_actor.pth
-    SafetyCarPush1-v0 (min_good = 8.0, max_bad = 4.0):                  weights/Expert_cmax(25)/CarPush_actor.pth
-    ```
+1. In our experiments, we use an relaxed-constraint expert to help our agent collect a number of expert trajectories at the begining for unsafe agent having high return. We want to achieve both high return and safe to strict constraint agent from our work. . Here, we provide some pretrained relaxed agent which are located in [drive](https://drive.google.com/drive/folders/17qgFn1Wl_-V6WvmI6liGiawcg7qRct4t?usp=sharing).
 
 1. For example, to run train SIM in SafetyPointPush1-v0:
 
     ``` bash
-    python Trains/train_good_bad.py \
-    --env_name='SafetyPointPush1-v0' \
-    --seed=0 --num_training_step=30000000 \
-    --gamma=0.99 --cost_gamma=0.99 \
-    --number_layers=3 --hidden_units_actor=256 --hidden_units_critic=256 \
-    --coef_ent=0.0001 --reward_factor=1.0 --cost_limit=15.0 \
-    --lr_actor=0.0001 --lr_critic=0.0001 --lr_penalty=0.01 --clip_eps=0.2 \
-    --num_eval_episodes=100 --eval_num_envs=0 --max_grad_norm=1.0 --epoch_ppo=160 \
-    --buffer_size=50000 --eval_interval=300000 --num_envs=25 --max_episode_length=1000 \
-    --risk_level=1.0 --batch_size=4096 --epoch_clfs=100 \
-    --weight_path='./weights/SafetyPointPush1-v0/SIM' \
-    --dynamic_good=False --tanh_conf=False --min_good=11.0 --max_bad=6.0 \
-    --conf_coef=0.03 --start_bad=100 \
-    --expert_path='./weights/Expert_cmax(25)/PointPush_actor.pth'
+    ./Scripts/run_train_good_bad.sh
 
     ```
 
 1. To re-train the relaxed constraint expert from scratch, we train PPO-Lagrangian with a higher cost limit C_max = 25.0. For example, to train relaxed-constraint expert in SafetyPointPush1-v0:
     ```
-    python Trains/train_PPO_lag.py \
-    --env_name='SafetyCarButton1-v0' \
-    --seed=0 --num_training_step=30000000 \
-    --gamma=0.99 --cost_gamma=0.99 \
-    --number_layers=3 --hidden_units_actor=256 --hidden_units_critic=256 \
-    --coef_ent=0.0001 --reward_factor=1.0 --cost_limit=25.0 \
-    --lr_actor=0.0001 --lr_critic=0.0001 --lr_penalty=0.01 --clip_eps=0.2 \
-    --num_eval_episodes=100 --eval_num_envs=25 --max_grad_norm=1.0 --epoch_ppo=160 \
-    --buffer_size=50000 --eval_interval=500000 --num_envs=25 --max_episode_length=1000 \
-    --weight_path='./weights/SafetyCarButton1-v0/PPO-lag(25.0)' 
+    ./Scripts/run_train_PPO_lag.sh
     ```
     More over, we save our weight as following format: "(value)-(satisfaction_rate)-(mean_return)-(mean_cost).pth".
     Select the highest (value) as the relaxed expert for SIM training as well as mean_return fpr min_good.
-## Plot Figure
 
-## Directory Tree
+## Directory Structure
+```
+├───Parameters                          # Parameter list
+├───Sources
+│   ├───algo
+│   │   ├───base_algo.py
+│   │   ├───ppo.py                      # PPO and PPO-lag implementation
+│   │   └───sim.py                      # SIM implementation
+│   ├───buffer
+│   │   └───buffer_PPO.py               # buffer implementation
+│   ├───network
+│   │   ├───classifier.py               # classifier implementation
+│   │   ├───policy.py                   # policy implementation
+│   │   └───value.py                    # critic implementation
+│   └───utils                           # necessary functions
+├───Trains
+│   ├───train_good_bad.py               # training file for SIM
+│   ├───train_PPO.py                    # training file for PPO
+│   └───train_PPO_lag.py                # training file for PPO-lag
+├───weights
+│   └───Expert_cmax(25)                 # pretrained of relaxed-constraint expert for every environments
+├───Scripts                             # bash script for training
+│   ├───run_train_good_bad.sh           
+│   ├───run_train_PPO.sh                
+│   └───run_train_PPO_lag.sh            
+├───Plot_figures                        # Scripts to draw training curves in the paper
+│   ├───figures                         # Figures for every expertiments
+│   └───log_data                        # collected data for the experiments
+├───safety-gymnasium                    # Environment directory
+│   ├───benchmarks                      # existing official results for benchmarks (FOCOPS, CUP,.etc)
+    └───safety_gymnasium                # Source for environments
+```
+
+## Experiments
+
+Our method (SIM) are compared with several existing methods for comparison in severals different environments:
+
+1. [PPO](https://arxiv.org/pdf/1707.06347.pdf) (John Schulman et al., 2017)
+1. [PPO-Lagrangian](https://cdn.openai.com/safexp-short.pdf) (Ray, Achiam,
+and Amodei, 2019)
+1. [FOCOPS](https://arxiv.org/abs/2002.06506) (Zhang, Vuong, and Ross, 2020)
+1. [CUP](https://arxiv.org/abs/2209.07089) (Joshua Achiam et al., 2017)
+1. [CPO](https://proceedings.mlr.press/v70/achiam17a) (Yang et al., 2022)
+
+For a fair comparison, we use the same hyper-parameters for all environments which can be found on the paper appendex section. To perfer the hyper-parameters, please access to the [Parameters](Parameters) and script bash files. 
+All the experiments are listed in [Plot_figures](Plot_figures). More details are available in that folder. 
+
+## Conclusion
+
+We introduced a novel framework to solve Constrained RL without relying on cost estimations or cost penalties, as commonly done in prior work. Our new algorithm, based on the idea of learning to mimic the behavior of good demonstrations and avoid bad demonstrations, is non-adversarial and allows learning from demonstration sets to evolve during the training process. Extensive experiments on several challenging benchmark tasks demonstrate that our approach achieves superior performance compared to prior constrained RL algorithms.
+Our IL-based framework would open new directions to address safe RL problems without explicitly considering the reward or cost function. Our algorithm relies on sets of good demonstrations generated by a pre-trained policy, so a limitation would be that our algorithm will not work if it is difficult to generate feasible trajectories due to, for instance, strict constraints. A future direction would be to develop new IL-based algorithms to address such issues.
+
+## Contact
+...
