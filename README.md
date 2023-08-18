@@ -1,4 +1,4 @@
-<h1>mitate the Good and Avoid the Bad: An incremental approach to Safe
+<h1>Imitate the Good and Avoid the Bad: An incremental approach to Safe
 Reinforcement Learning</h1>
 
 ## Introduction
@@ -50,7 +50,7 @@ cost, CVaR cost, or even unknown cost constraints.
 ## Environment informations
 We conduct experiments in 6 different safety-gym environments which can be found in [Safety-gymnaisum](https://www.safety-gymnasium.com/en/latest/). 
 ## Train Self-IMitation based safe RL
-1. In our experiments, we use an relaxed-constraint expert to help our agent collect a number of expert trajectories at the begining for unsafe agent having high return. We want to achieve both high return and safe to strict constraint agent from our work. . Here, we provide some pretrained relaxed agent which are located in [drive](https://drive.google.com/drive/folders/17qgFn1Wl_-V6WvmI6liGiawcg7qRct4t?usp=sharing).
+1. In our experiments, we use a relaxed-constraint expert to help our agent collect a number of expert trajectories at the beginning for an unsafe agent having a high return. We want to achieve both a high return and safety for the strict-constraint agent through our work. Here, we provide some pre-trained relaxed agents which are located on [drive](https://drive.google.com/drive/folders/17qgFn1Wl_-V6WvmI6liGiawcg7qRct4t?usp=sharing).
 
 1. For example, to run train SIM in SafetyPointPush1-v0:
 
@@ -101,7 +101,7 @@ We conduct experiments in 6 different safety-gym environments which can be found
 
 ## Experiments
 
-Our method (SIM) are compared with several existing methods for comparison in severals different environments:
+Our method (SIM) is compared with several existing methods across several different environments:
 
 1. [PPO](https://arxiv.org/pdf/1707.06347.pdf) (John Schulman et al., 2017)
 1. [PPO-Lagrangian](https://cdn.openai.com/safexp-short.pdf) (Ray, Achiam,
@@ -110,8 +110,8 @@ and Amodei, 2019)
 1. [CUP](https://arxiv.org/abs/2209.07089) (Joshua Achiam et al., 2017)
 1. [CPO](https://proceedings.mlr.press/v70/achiam17a) (Yang et al., 2022)
 
-For a fair comparison, we use the same hyper-parameters for all environments which can be found on the paper appendex section. To perfer the hyper-parameters, please access to the [Parameters](Parameters) and script bash files. 
-All the experiments are listed in [Plot_figures](Plot_figures). More details are available in that folder. 
+To ensure a fair comparison, we utilize the same hyperparameters across all environments, which can be found in the paper's appendix section. To access and refer to the hyperparameters, please access to the [Parameters](Parameters) and script bash files. 
+All the experiments are listed in [Plot_figures](Plot_figures). For additional specifics, kindly refer to that particular folder.
 
 ## Conclusion
 
