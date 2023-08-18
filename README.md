@@ -41,6 +41,7 @@ cost, CVaR cost, or even unknown cost constraints.
     ```
 1. Install dependencies
     ```
+    git clone https://github.com/PKU-Alignment/safety-gymnasium.git
     cd safety-gymnasium
     pip install -e .
     cd ..
@@ -91,12 +92,10 @@ We conduct experiments in 6 different safety-gym environments which can be found
 │   ├───run_train_good_bad.sh           
 │   ├───run_train_PPO.sh                
 │   └───run_train_PPO_lag.sh            
-├───Plot_figures                        # Scripts to draw training curves in the paper
-│   ├───figures                         # Figures for every expertiments
-│   └───log_data                        # collected data for the experiments
-├───safety-gymnasium                    # Environment directory
-│   ├───benchmarks                      # existing official results for benchmarks (FOCOPS, CUP,.etc)
-    └───safety_gymnasium                # Source for environments
+└───Plot_figures                        # Scripts to draw training curves in the paper
+    ├───figures                         # Figures for every expertiments
+    └───log_data                        # collected data for the experiments
+
 ```
 
 ## Experiments
