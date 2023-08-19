@@ -9,6 +9,6 @@ python Trains/train_good_bad.py \
 --buffer_size=50000 --eval_interval=300000 --num_envs=25 --max_episode_length=1000 \
 --risk_level=1.0 --batch_size=4096 --epoch_clfs=100 \
 --weight_path='./weights/SafetyPointPush1-v0/SIM' \
---dynamic_good=False --tanh_conf=False --min_good=11.0 --max_bad=6.0 \
---conf_coef=0.03 --start_bad=100 \
+--dynamic_good=False --min_good=11.0 --max_bad=6.0 \
+--conf_coef=0.01 --start_bad=10 \
 --expert_path='./weights/Expert_cmax(25)/PointPush_actor.pth'

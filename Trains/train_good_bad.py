@@ -143,10 +143,6 @@ def main():
         print('training SIM with dynamic good threshold')
     else:
         print('training SIM with fixed good threshold')
-    if (tanh_conf):
-        print('training SIM with tanh confident')
-    else:
-        print('training SIM with sigmoid confident')
     print(f'threshold: minG: {min_good}, maxB: {max_bad}')
 
     setproctitle.setproctitle(f'{env_name}-SIM-{seed}')

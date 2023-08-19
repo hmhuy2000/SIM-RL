@@ -164,18 +164,17 @@ class SIM(PPO_lag):
     def update(self):
         for _ in range(self.epoch_clfs):
             bad_states, bad_actions,_,_,_,_ = self.exp_bad_buffer.sample_roll(self.batch_size)
+            pi_states, pi_actions, _,pi_returns, _, _, _, _ = self.buffer.sample(self.batch_size)
             good_states, good_actions,_,_,_,_ = self.exp_good_buffer.sample_roll(self.batch_size)
             self.update_clfs(   bad_states,bad_actions,
-                                good_states,good_actions)
+                                good_states,good_actions,
+                                pi_states, pi_actions,pi_returns)
 
         states, actions, env_rewards,total_env_rewards, costs, dones, log_pis, next_states = self.buffer.get()
         env_rewards = env_rewards.clamp(min=-3.0,max=3.0)
         if (self.exp_bad_buffer.roll_n>=self.start_bad*self.max_episode_length):
-            if (not self.tanh_conf):
-                confidents = self.clfs.get_confident_sigmoid(states,actions).detach()
-            else:
-                confidents = self.clfs.get_confident_tanh(states,actions).detach()
-
+            confidents = self.clfs.get_confident_sigmoid(states,actions).detach()
+            confidents = torch.log(confidents/(1-confidents))
         else:
             confidents = torch.tensor(0.0)
         conf_reward =self.conf_coef*confidents
@@ -192,13 +191,15 @@ class SIM(PPO_lag):
         
     def update_clfs(self, 
                     bad_states,bad_actions,
-                    good_states,good_actions):
+                    good_states,good_actions,
+                    pi_states, pi_actions,pi_returns):
         bad_logits = self.clfs(bad_states,bad_actions)
-        bad_loss = (1/10*bad_logits**2 + bad_logits).mean()
+        bad_loss = (1/8*bad_logits**2 + bad_logits).mean()
         good_logits = self.clfs(good_states,good_actions)
-        good_loss = (1/10*good_logits**2 - good_logits).mean()
-
+        good_loss = (1/8*good_logits**2 - good_logits).mean()
+        pi_logits = self.clfs(pi_states,pi_actions)[pi_returns>np.mean(self.return_reward)+np.std(self.return_reward)]
+        pi_loss = (1/8*pi_logits**2 - pi_logits).mean()
         self.optim_clfs.zero_grad()
-        (bad_loss+good_loss).backward()
+        (bad_loss+good_loss+pi_loss).backward()
         nn.utils.clip_grad_norm_(self.clfs.parameters(), self.max_grad_norm)
         self.optim_clfs.step()

@@ -50,7 +50,7 @@ cost, CVaR cost, or even unknown cost constraints.
 ## Environment informations
 We conduct experiments in 6 different safety-gym environments which can be found in [Safety-gymnaisum](https://www.safety-gymnasium.com/en/latest/). 
 ## Train Self-IMitation based safe RL
-1. In our experiments, we use a relaxed-constraint expert to help our agent collect a number of expert trajectories at the beginning for an unsafe agent having a high return. We want to achieve both a high return and safety for the strict-constraint agent through our work. Here, we provide some pre-trained relaxed agents which are located on [drive](https://drive.google.com/drive/folders/17qgFn1Wl_-V6WvmI6liGiawcg7qRct4t?usp=sharing).
+1. In our experiments, we use a relaxed-constraint expert to help our agent collect a number of expert trajectories at the beginning due to unsafe agent having a high return. We want to achieve both high return and safety for the strict-constraint agent through our work. Here, we provide some pre-trained relaxed agents which are located on [drive](https://drive.google.com/drive/folders/17qgFn1Wl_-V6WvmI6liGiawcg7qRct4t?usp=sharing).
 
 1. For example, to run train SIM in SafetyPointPush1-v0:
 
@@ -59,12 +59,12 @@ We conduct experiments in 6 different safety-gym environments which can be found
 
     ```
 
-1. To re-train the relaxed constraint expert from scratch, we train PPO-Lagrangian with a higher cost limit C_max = 25.0. For example, to train relaxed-constraint expert in SafetyPointPush1-v0:
+1. To re-train the relaxed constraint expert from scratch, we train PPO-Lagrangian with a higher cost limit C_max = 28.0. For example, to train relaxed-constraint expert in SafetyPointPush1-v0:
     ```
     ./Scripts/run_train_PPO_lag.sh
     ```
     More over, we save our weight as following format: "(value)-(satisfaction_rate)-(mean_return)-(mean_cost).pth".
-    Select the highest (value) as the relaxed expert for SIM training as well as mean_return fpr min_good.
+    Select the highest (value) as the relaxed expert for SIM training as well as mean_return for min_good hyper-parameter.
 
 ## Directory Structure
 ```
@@ -86,7 +86,7 @@ We conduct experiments in 6 different safety-gym environments which can be found
 │   ├───train_PPO.py                    # training file for PPO
 │   └───train_PPO_lag.py                # training file for PPO-lag
 ├───weights
-│   └───Expert_cmax(25)                 # relaxed-constraint expert location
+│   └───Expert_cmax(28)                 # relaxed-constraint expert location
 ├───Scripts                             # bash script for training
 │   ├───run_train_good_bad.sh           
 │   ├───run_train_PPO.sh                
