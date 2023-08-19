@@ -174,7 +174,6 @@ class SIM(PPO_lag):
         env_rewards = env_rewards.clamp(min=-3.0,max=3.0)
         if (self.exp_bad_buffer.roll_n>=self.start_bad*self.max_episode_length):
             confidents = self.clfs.get_confident_sigmoid(states,actions).detach()
-            confidents = torch.log(confidents/(1-confidents))
         else:
             confidents = torch.tensor(0.0)
         conf_reward =self.conf_coef*confidents
