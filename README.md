@@ -2,8 +2,7 @@
 Reinforcement Learning</h1>
 
 ## Introduction
-A popular framework for enforcing safe actions in Rein-
-forcement Learning (RL) is Constrained RL, where trajectory
+A popular framework for enforcing safe actions in Reinforcement Learning (RL) is Constrained RL, where trajectory
 based constraints on expected cost (or other cost measures)
 are employed to enforce safety and more importantly these
 constraints are enforced while maximizing expected reward.
@@ -81,19 +80,18 @@ We conduct experiments in 6 different safety-gym environments which can be found
 │   │   ├───classifier.py               # classifier implementation
 │   │   ├───policy.py                   # policy implementation
 │   │   └───value.py                    # critic implementation
-│   └───utils                           # necessary functions
+│   └───utils                           
 ├───Trains
 │   ├───train_good_bad.py               # training file for SIM
 │   ├───train_PPO.py                    # training file for PPO
 │   └───train_PPO_lag.py                # training file for PPO-lag
 ├───weights
-│   └───Expert_cmax(25)                 # pretrained of relaxed-constraint expert for every environments
+│   └───Expert_cmax(25)                 # relaxed-constraint expert location
 ├───Scripts                             # bash script for training
 │   ├───run_train_good_bad.sh           
 │   ├───run_train_PPO.sh                
 │   └───run_train_PPO_lag.sh            
 └───Plot_figures                        # Scripts to draw training curves in the paper
-    ├───figures                         # Figures for every expertiments
     └───log_data                        # collected data for the experiments
 
 ```
@@ -109,8 +107,8 @@ and Amodei, 2019)
 1. [CUP](https://arxiv.org/abs/2209.07089) (Joshua Achiam et al., 2017)
 1. [CPO](https://proceedings.mlr.press/v70/achiam17a) (Yang et al., 2022)
 
-To ensure a fair comparison, we utilize the same hyperparameters across all environments, which can be found in the paper's appendix section. To access and refer to the hyperparameters, please access to the [Parameters](Parameters) and script bash files. 
-All the experiments are listed in [Plot_figures](Plot_figures). For additional specifics, kindly refer to that particular folder.
+To ensure a fair comparison, we utilize the same hyperparameters across all environments, which can be found in the paper's appendix section. To access and refer to the hyperparameters, please access to the [Parameters](Parameters) and [script bash files](./Scripts/run_train_good_bad.sh). 
+All the experiments are listed in [Plot figures](Plot_figures). For additional specifics, kindly refer to that particular folder.
 
 ## Conclusion
 
