@@ -65,7 +65,7 @@ def main():
             f'SR: {success_rate:.2f}, '
             f'V: {value:.2f}, maxV: {max_eval_return:.2f}')
 
-    def collect_expert_demonstration(env,algo,total_interaction=int(1e6)):
+    def collect_expert_demonstration(env,algo,total_interaction=int(25*1e4)):
         t = [0 for _ in range(num_envs)]
         state,_ = env.reset()
 

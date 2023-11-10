@@ -9,8 +9,11 @@ exp/
 *.pt
 *.csv
 *.gif
+*.pt
+&.txt
 outputs
 data/
+weights/
 outputs/
 video/
 */.gitignore

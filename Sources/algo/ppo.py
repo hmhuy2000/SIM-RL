@@ -139,18 +139,24 @@ class PPO_continuous(Algorithm):
     def is_update(self,step):
         return step % self.rollout_length == 0
 
-    def update(self):
+    def update(self,log_info):
         self.learning_steps += 1
         states, actions, env_rewards,env_totals, costs, dones, log_pis, next_states = \
             self.buffer.get()
         env_rewards = env_rewards.clamp(min=-3.0,max=3.0)
         rewards = env_rewards
         print(f'[Train] R: {np.mean(self.return_reward):.2f}, C: {np.mean(self.return_cost):.2f}')
-        self.update_ppo(states, actions, rewards, costs, dones, log_pis, next_states)
+        self.update_ppo(states, actions, rewards, costs, dones, log_pis, next_states,log_info)
+        log_info.update({
+            'Train/return':np.mean(self.return_reward),
+            'Train/cost':np.mean(self.return_cost),
+            'update/env_reward':env_rewards.mean().item(),
+            'update/log_pis':log_pis.mean().item(),
+        })
         self.return_cost = []
         self.return_reward = []
 
-    def update_ppo(self, states, actions, rewards,costs, dones, log_pis, next_states):
+    def update_ppo(self, states, actions, rewards,costs, dones, log_pis, next_states,log_info):
         with torch.no_grad():
             values = self.critic(states)
             cost_values = self.cost_critic(states)         
@@ -163,16 +169,49 @@ class PPO_continuous(Algorithm):
             cost_values, costs, dones, next_cost_values, self.cost_gamma, self.lambd)
         
         for _ in range(self.epoch_ppo):
-            self.update_critic(states, targets, cost_targets)
+            self.update_critic(states, targets, cost_targets,log_info)
         
         app_kl = 0.0
         for _ in range(self.epoch_ppo):
             if (app_kl>self.target_kl):
                 break
             app_kl = self.update_actor(states, actions,
-                            log_pis, gaes,cost_gaes)
+                            log_pis, gaes,cost_gaes,log_info)
+            
+        log_info.update({
+            'value_critic/values_mean':values.mean().item(),
+            'value_critic/values_max':values.max().item(),
+            'value_critic/values_min':values.min().item(),
+            'value_critic/next_values_mean':next_values.mean().item(),
+            'value_critic/next_values_max':next_values.max().item(),
+            'value_critic/next_values_min':next_values.min().item(),
+            
+            'cost_critic/costs_mean':cost_values.mean().item(),
+            'cost_critic/costs_max':cost_values.max().item(),
+            'cost_critic/costs_min':cost_values.min().item(),
+            'cost_critic/next_costs_mean':next_cost_values.mean().item(),
+            'cost_critic/next_costs_max':next_cost_values.max().item(),
+            'cost_critic/next_costs_min':next_cost_values.min().item(),
+            
+            'target/values_mean':targets.mean().item(),
+            'target/values_max':targets.max().item(),
+            'target/values_min':targets.min().item(),
+            'target/costs_mean':cost_targets.mean().item(),
+            'target/costs_max':cost_targets.max().item(),
+            'target/costs_min':cost_targets.min().item(),
 
-    def update_critic(self, states, targets,cost_targets):
+            'gaes/values_mean':gaes.mean().item(),
+            'gaes/values_max':gaes.max().item(),
+            'gaes/values_min':gaes.min().item(),
+            'gaes/costs_mean':cost_gaes.mean().item(),
+            'gaes/costs_max':cost_gaes.max().item(),
+            'gaes/costs_min':cost_gaes.min().item(),
+            
+            'update/penalty':F.softplus(self.penalty).item(),
+            'update/KL':app_kl,
+        })
+
+    def update_critic(self, states, targets,cost_targets,log_info):
         value_means = self.critic(states)
         loss_critic = (value_means - targets).pow_(2).mean()
 
@@ -181,7 +220,7 @@ class PPO_continuous(Algorithm):
         nn.utils.clip_grad_norm_(self.critic.parameters(), self.max_grad_norm)
         self.optim_critic.step()
 
-    def update_actor(self, states, actions, log_pis_old, gaes, cost_gaes):
+    def update_actor(self, states, actions, log_pis_old, gaes, cost_gaes,log_info):
         log_pis = self.actor.evaluate_log_pi(states, actions)
         entropy = -log_pis.mean()
         approx_kl = (log_pis_old - log_pis).mean().item()
@@ -245,7 +284,7 @@ class PPO_lag(PPO_continuous):
             self.cost_limit * (1 - self.cost_gamma**self.max_episode_length) / (1 - self.cost_gamma) / self.max_episode_length
         )
 
-    def update_ppo(self, states, actions, rewards,costs, dones, log_pis, next_states):
+    def update_ppo(self, states, actions, rewards,costs, dones, log_pis, next_states,log_info):
         with torch.no_grad():
             values = self.critic(states)
             cost_values = self.cost_critic(states)         
@@ -256,16 +295,15 @@ class PPO_lag(PPO_continuous):
             values, rewards, dones, next_values, self.gamma, self.lambd)
         cost_targets, cost_gaes = calculate_gae_cost(
             cost_values, costs, dones, next_cost_values, self.cost_gamma, self.lambd)
-        
         for _ in range(self.epoch_ppo):
-            self.update_critic(states, targets, cost_targets)
+            self.update_critic(states, targets, cost_targets,log_info)
         
         app_kl = 0.0
         for _ in range(self.epoch_ppo):
             if (app_kl>self.target_kl):
                 break
             app_kl = self.update_actor(states, actions,
-                        log_pis, gaes,cost_gaes)
+                        log_pis, gaes,cost_gaes,log_info)
 
         with torch.no_grad():
             cost_values = self.cost_critic(states)         
@@ -275,7 +313,40 @@ class PPO_lag(PPO_continuous):
         loss_penalty.backward()
         self.optim_penalty.step()
 
-    def update_actor(self, states, actions, log_pis_old, gaes, cost_gaes):
+        log_info.update({
+            'value_critic/values_mean':values.mean().item(),
+            'value_critic/values_max':values.max().item(),
+            'value_critic/values_min':values.min().item(),
+            'value_critic/next_values_mean':next_values.mean().item(),
+            'value_critic/next_values_max':next_values.max().item(),
+            'value_critic/next_values_min':next_values.min().item(),
+            
+            'cost_critic/costs_mean':cost_values.mean().item(),
+            'cost_critic/costs_max':cost_values.max().item(),
+            'cost_critic/costs_min':cost_values.min().item(),
+            'cost_critic/next_costs_mean':next_cost_values.mean().item(),
+            'cost_critic/next_costs_max':next_cost_values.max().item(),
+            'cost_critic/next_costs_min':next_cost_values.min().item(),
+            
+            'target/values_mean':targets.mean().item(),
+            'target/values_max':targets.max().item(),
+            'target/values_min':targets.min().item(),
+            'target/costs_mean':cost_targets.mean().item(),
+            'target/costs_max':cost_targets.max().item(),
+            'target/costs_min':cost_targets.min().item(),
+
+            'gaes/values_mean':gaes.mean().item(),
+            'gaes/values_max':gaes.max().item(),
+            'gaes/values_min':gaes.min().item(),
+            'gaes/costs_mean':cost_gaes.mean().item(),
+            'gaes/costs_max':cost_gaes.max().item(),
+            'gaes/costs_min':cost_gaes.min().item(),
+            
+            'update/penalty':F.softplus(self.penalty).item(),
+            'update/KL':app_kl,
+        })
+
+    def update_actor(self, states, actions, log_pis_old, gaes, cost_gaes,log_info):
         log_pis = self.actor.evaluate_log_pi(states, actions)
         entropy = -log_pis.mean()
         approx_kl = (log_pis_old - log_pis).mean().item()
@@ -299,7 +370,7 @@ class PPO_lag(PPO_continuous):
         self.optim_actor.step()
         return approx_kl
     
-    def update_critic(self, states, targets,cost_targets):
+    def update_critic(self, states, targets,cost_targets,log_info):
         value_means = self.critic(states)
         loss_critic = (value_means - targets).pow_(2).mean()
         cost_means = self.cost_critic(states)

@@ -20,6 +20,7 @@ def main():
     import torch
     import setproctitle
     from torch import nn
+    import wandb
 
     #------------------------------------------#
     def evaluate(algo, env,max_episode_length):
@@ -67,9 +68,11 @@ def main():
         t = [0 for _ in range(num_envs)]
         eval_thread = None
         state,_ = env.reset()
+        log_cnt = 0
 
         print('start training')
         for step in range(1,num_training_step//num_envs+1):
+            log_info = {}
             if (step%100 == 0):
                 print(f'train: {step/(num_training_step//num_envs)*100:.2f}% {step}/{num_training_step//num_envs}', end='\r')
             state, t = algo.step(env, state, t)
@@ -78,18 +81,26 @@ def main():
                     eval_return.flush()
                     eval_cost.write(f'{np.mean(algo.return_cost)}\n')
                     eval_cost.flush()
-                    algo.update()
+                    algo.update(log_info)
                     
-            if step % (eval_interval//num_envs) == 0:
-                algo.save_models(f'{weight_path}/s{seed}-latest')
-                if (test_env):
-                    if eval_thread is not None:
-                        eval_thread.join()
-                    eval_algo.copyNetworksFrom(algo)
-                    eval_algo.eval()
-                    eval_thread = threading.Thread(target=evaluate, 
-                    args=(eval_algo,test_env,max_episode_length))
-                    eval_thread.start()
+            if (len(log_info.keys())>0):
+                log_info['update_step']=log_cnt
+                try:
+                    wandb.log(log_info, step = log_cnt)
+                except:
+                    print(log_info)
+                log_cnt += 1                    
+
+            # if step % (eval_interval//num_envs) == 0:
+            #     algo.save_models(f'{weight_path}/s{seed}-latest')
+            #     if (test_env):
+            #         if eval_thread is not None:
+            #             eval_thread.join()
+            #         eval_algo.copyNetworksFrom(algo)
+            #         eval_algo.eval()
+            #         eval_thread = threading.Thread(target=evaluate, 
+            #         args=(eval_algo,test_env,max_episode_length))
+            #         eval_thread.start()
         algo.save_models(f'{weight_path}/s{seed}-finish')
 
     state_shape=sample_env.observation_space.shape
@@ -107,6 +118,15 @@ def main():
             epoch_clfs=epoch_clfs,batch_size=batch_size,lr_clfs=lr_clfs,clip_eps=clip_eps, lambd=lambd, coef_ent=coef_ent,
             max_grad_norm=max_grad_norm,reward_factor=reward_factor,max_episode_length=max_episode_length,
             cost_limit=cost_limit,risk_level=risk_level,num_envs=num_envs)
+    
+    wandb_logs = True
+    wandb_group = f'PPO-lag {cost_limit}'
+    if (wandb_logs):
+        print('---------------------using Wandb---------------------')
+        wandb.init(project=f'{env_name}', settings=wandb.Settings(_disable_stats=True), \
+        group=wandb_group, name=f'{seed}', entity='hmhuy')
+    else:
+        print('----------------------no Wandb-----------------------')
     
     eval_algo = deepcopy(algo)
     create_folder(weight_path)

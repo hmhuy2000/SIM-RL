@@ -1,4 +1,4 @@
-python Trains/train_good_bad.py \
+CUDA_VISIBLE_DEVICES=2 python Trains/train_good_bad.py \
 --env_name='SafetyPointPush1-v0' \
 --seed=0 --num_training_step=30000000 \
 --gamma=0.99 --cost_gamma=0.99 \

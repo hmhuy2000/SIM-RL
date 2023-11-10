@@ -196,9 +196,9 @@ class SIM(PPO_lag):
         bad_loss = (1/8*bad_logits**2 + bad_logits).mean()
         good_logits = self.clfs(good_states,good_actions)
         good_loss = (1/8*good_logits**2 - good_logits).mean()
-        pi_logits = self.clfs(pi_states,pi_actions)[pi_returns>np.mean(self.return_reward)+np.std(self.return_reward)]
-        pi_loss = (1/8*pi_logits**2 - pi_logits).mean()
+        # pi_logits = self.clfs(pi_states,pi_actions)[pi_returns>np.mean(self.return_reward)+np.std(self.return_reward)]
+        # pi_loss = (1/8*pi_logits**2 - pi_logits).mean()
         self.optim_clfs.zero_grad()
-        (bad_loss+good_loss+pi_loss).backward()
+        (bad_loss+good_loss).backward()
         nn.utils.clip_grad_norm_(self.clfs.parameters(), self.max_grad_norm)
         self.optim_clfs.step()
