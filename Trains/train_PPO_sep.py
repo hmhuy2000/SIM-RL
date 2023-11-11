@@ -121,7 +121,7 @@ def main():
             cost_limit=cost_limit,risk_level=risk_level,num_envs=num_envs)
     
     wandb_logs = True
-    wandb_group = f'PPO-seperated {cost_limit}'
+    wandb_group = f'PPO-sep({cost_limit})'
     if (wandb_logs):
         print('---------------------using Wandb---------------------')
         wandb.init(project=f'{env_name}', settings=wandb.Settings(_disable_stats=True), \

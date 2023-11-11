@@ -151,8 +151,10 @@ class PPO_sep(Algorithm):
             'Train/cost':np.mean(self.return_cost),
             'update/env_reward':env_rewards.mean().item(),
             'update/log_pis':log_pis.mean().item(),
-            'update/violated_costs':np.mean(self.violated_costs),
-            'update/satisfied_costs':np.mean(self.satisfied_costs),
+            'update/feasible_costs':np.mean(self.satisfied_costs),
+            'update/violate_costs':np.mean(self.violated_costs),
+            'update/num_feasible':len(self.satisfied_costs),
+            'update/num_violate':len(self.violated_costs),
         })
         self.return_cost = []
         self.return_reward = []
