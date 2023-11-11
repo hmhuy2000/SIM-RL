@@ -53,6 +53,14 @@ class PPO_sep(Algorithm):
                 mix=mix
             )
 
+            self.violated_buffer = RolloutBuffer_PPO_sep(
+                buffer_size=buffer_size,
+                state_shape=state_shape,
+                action_shape=action_shape,
+                device=device,
+                mix=mix
+            )
+
             self.actor = StateIndependentPolicy(
                 state_shape=state_shape,
                 action_shape=action_shape,
@@ -104,6 +112,13 @@ class PPO_sep(Algorithm):
         self.target_cost = (
             self.cost_limit * (1 - self.cost_gamma**self.max_episode_length) / (1 - self.cost_gamma) / self.max_episode_length
         )
+   
+    def get_buffer(self,cost):
+        if cost<=self.cost_limit:
+            self.satisfied_costs.append(cost)
+            return self.buffer
+        self.violated_costs.append(cost)
+        return self.violated_buffer
         
     def step(self, env, state, ep_len):
         action, log_pi = self.explore(state)
@@ -118,16 +133,14 @@ class PPO_sep(Algorithm):
             if (self.max_episode_length and ep_len[idx]>=self.max_episode_length):
                 done[idx] = True
             if (done[idx]):
+                buffer = self.get_buffer(self.tmp_return_cost[idx])
                 for (tmp_state,tmp_action,tmp_reward,tmp_c,tmp_mask,tmp_log_pi,tmp_next_state) in self.tmp_buffer[idx]:
-                    self.buffer.append(tmp_state, tmp_action, tmp_reward,self.tmp_return_reward[idx],
+                    buffer.append(tmp_state, tmp_action, tmp_reward,self.tmp_return_reward[idx],
                      tmp_c,self.tmp_return_cost[idx], tmp_mask, tmp_log_pi, tmp_next_state)
+                    
                 self.tmp_buffer[idx] = []
                 self.return_cost.append(self.tmp_return_cost[idx])
                 self.return_reward.append(self.tmp_return_reward[idx])
-                if (self.tmp_return_cost[idx]>self.cost_limit):
-                    self.violated_costs.append(self.tmp_return_cost[idx])
-                else:
-                    self.satisfied_costs.append(self.tmp_return_cost[idx])
                 self.tmp_return_cost[idx] = 0
                 self.tmp_return_reward[idx] = 0
         if(done[0]):
@@ -140,16 +153,30 @@ class PPO_sep(Algorithm):
     
     def update(self,log_info):
         self.learning_steps += 1
-        states, actions, env_rewards,env_returns, costs, env_costs, dones, log_pis, next_states = \
+        good_states, good_actions, good_rewards,good_total_rewards, good_costs, good_total_costs, good_dones, good_log_pis, good_next_states = \
             self.buffer.get()
-        env_rewards = env_rewards.clamp(min=-3.0,max=3.0)
-        rewards = env_rewards
+        bad_states, bad_actions, bad_rewards,bad_total_rewards, bad_costs, bad_total_costs, bad_dones, bad_log_pis, bad_next_states = \
+            self.violated_buffer.get()
+        with torch.no_grad():
+            good_log_pis = self.actor.evaluate_log_pi(good_states, good_actions)
+            bad_log_pis = self.actor.evaluate_log_pi(bad_states, bad_actions)
+        
+        states = torch.cat((good_states,bad_states),dim=0)
+        actions = torch.cat((good_actions,bad_actions),dim=0)
+        rewards = torch.cat((good_rewards,bad_rewards),dim=0)
+        costs = torch.cat((good_costs,bad_costs),dim=0)
+        dones = torch.cat((good_dones,bad_dones),dim=0)
+        log_pis = torch.cat((good_log_pis,bad_log_pis),dim=0)
+        next_states = torch.cat((good_next_states,bad_next_states),dim=0)
+        is_satisfied = torch.cat((torch.ones_like(good_log_pis,dtype=torch.bool),
+                                  torch.zeros_like(bad_log_pis,dtype=torch.bool)),dim=0)
+        
         print(f'[Train] R: {np.mean(self.return_reward):.2f}, C: {np.mean(self.return_cost):.2f}')
-        self.update_ppo(states, actions, rewards, costs,env_costs, dones, log_pis, next_states,log_info)
+        self.update_ppo(states, actions, rewards, costs, dones, log_pis, next_states,is_satisfied,log_info)
         log_info.update({
             'Train/return':np.mean(self.return_reward),
             'Train/cost':np.mean(self.return_cost),
-            'update/env_reward':env_rewards.mean().item(),
+            'update/reward':rewards.mean().item(),
             'update/log_pis':log_pis.mean().item(),
             'update/feasible_costs':np.mean(self.satisfied_costs),
             'update/violate_costs':np.mean(self.violated_costs),
@@ -161,13 +188,14 @@ class PPO_sep(Algorithm):
         self.violated_costs = []
         self.satisfied_costs = []
 
-    def update_ppo(self, states, actions, rewards,costs,total_costs, dones, log_pis, next_states,log_info):
+    def update_ppo(self, states, actions, rewards,costs, dones, log_pis, next_states,satisfied_mask,log_info):
+        app_kl = 0.0
+
         with torch.no_grad():
             values = self.critic(states)
             cost_values = self.cost_critic(states)         
             next_values = self.critic(next_states)
             next_cost_values = self.cost_critic(next_states) 
-
         targets, gaes = calculate_gae(
             values, rewards, dones, next_values, self.gamma, self.lambd)
         cost_targets, cost_gaes = calculate_gae_cost(
@@ -175,10 +203,7 @@ class PPO_sep(Algorithm):
         
         for _ in range(self.epoch_ppo):
             self.update_critic(states, targets, cost_targets)
-        
-        satisfied_mask = total_costs<=self.cost_limit
-        app_kl = 0.0
-        for _ in range(self.epoch_ppo):
+        for n_update_actor in range(self.epoch_ppo):
             if (app_kl>self.target_kl):
                 break
             app_kl = self.update_actor(states, actions, log_pis, gaes,cost_gaes,satisfied_mask,log_info)
@@ -220,8 +245,8 @@ class PPO_sep(Algorithm):
             'gaes/costs_max':cost_gaes.max().item(),
             'gaes/costs_min':cost_gaes.min().item(),
             
-            'update/penalty':F.softplus(self.penalty).item(),
             'update/KL':app_kl,
+            'update/n_actor_update':n_update_actor,
         })
 
     def update_actor(self, states, actions, log_pis_old, gaes, cost_gaes,satisfied_mask,log_info):
@@ -230,7 +255,7 @@ class PPO_sep(Algorithm):
         approx_kl = (log_pis_old - log_pis).mean().item()
         ratios = (log_pis - log_pis_old).exp_()
         
-        penalty = F.softplus(self.penalty).detach()
+        penalty = F.softplus(self.penalty).clamp(max=10.0).detach()
         penalty = torch.full_like(gaes,penalty)
         penalty[satisfied_mask] = 0.0
 
@@ -249,6 +274,11 @@ class PPO_sep(Algorithm):
         (total_loss).backward(retain_graph=False)
         nn.utils.clip_grad_norm_(self.actor.parameters(), self.max_grad_norm)
         self.optim_actor.step()
+        
+        log_info.update({
+            'update/penalty':F.softplus(self.penalty).clamp(max=10.0).detach(),
+            
+        })
         return approx_kl
     
     def update_critic(self, states, targets,cost_targets):
