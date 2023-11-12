@@ -157,9 +157,9 @@ class PPO_sep(Algorithm):
             self.buffer.get()
         bad_states, bad_actions, bad_rewards,bad_total_rewards, bad_costs, bad_total_costs, bad_dones, bad_log_pis, bad_next_states = \
             self.violated_buffer.get()
-        with torch.no_grad():
-            good_log_pis = self.actor.evaluate_log_pi(good_states, good_actions)
-            bad_log_pis = self.actor.evaluate_log_pi(bad_states, bad_actions)
+        # with torch.no_grad():
+        #     good_log_pis = self.actor.evaluate_log_pi(good_states, good_actions)
+        #     bad_log_pis = self.actor.evaluate_log_pi(bad_states, bad_actions)
         
         states = torch.cat((good_states,bad_states),dim=0)
         actions = torch.cat((good_actions,bad_actions),dim=0)
@@ -255,7 +255,7 @@ class PPO_sep(Algorithm):
         approx_kl = (log_pis_old - log_pis).mean().item()
         ratios = (log_pis - log_pis_old).exp_()
         
-        penalty = F.softplus(self.penalty).clamp(max=10.0).detach()
+        penalty = F.softplus(self.penalty).detach()
         penalty = torch.full_like(gaes,penalty)
         penalty[satisfied_mask] = 0.0
 
@@ -276,7 +276,7 @@ class PPO_sep(Algorithm):
         self.optim_actor.step()
         
         log_info.update({
-            'update/penalty':F.softplus(self.penalty).clamp(max=10.0).detach(),
+            'update/penalty':F.softplus(self.penalty).detach(),
             
         })
         return approx_kl

@@ -15,7 +15,7 @@ training_group.add_argument('--mix',type=int,default=1)
 training_group.add_argument('--hidden_units_actor',type=int,default=256)
 training_group.add_argument('--hidden_units_critic',type=int,default=256)
 training_group.add_argument('--hidden_units_clfs',type=int,default=256)
-training_group.add_argument('--number_layers',type=int,default=2)
+training_group.add_argument('--number_layers',type=int,default=3)
 
 training_group.add_argument('--lr_actor', type=float, default=0.0001)
 training_group.add_argument('--lr_critic', type=float, default=0.0001)

@@ -123,8 +123,8 @@ def main():
     wandb_group = f'PPO-lag {cost_limit}'
     if (wandb_logs):
         print('---------------------using Wandb---------------------')
-        wandb.init(project=f'{env_name}', settings=wandb.Settings(_disable_stats=True), \
-        group=wandb_group, name=f'{seed}', entity='hmhuy')
+        wandb.init(project=f'{args.env_name}', settings=wandb.Settings(_disable_stats=True), \
+        group='on-policy',job_type=wandb_group, name=f'{args.seed}', entity='hmhuy',config=args)
     else:
         print('----------------------no Wandb-----------------------')
     
